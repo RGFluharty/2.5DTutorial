@@ -15,8 +15,7 @@ MonoBehaviour:
   MemberName: John
   StartingLevel: 1
   BaseHealth: 10
-  CurrentHealth: 0
   BaseStr: 5
   BaseInit: 5
-  MemberBattleVisualPrefab: {fileID: 0}
+  MemberBattleVisualPrefab: {fileID: 7326773720283529191, guid: 02112994146585347be6a4e7ab96205e, type: 3}
   MemberOverworldVisualPrefab: {fileID: 0}
