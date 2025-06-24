@@ -6,6 +6,11 @@ using UnityEngine.UI;
 
 public class BattleSystem : MonoBehaviour
 {
+    [SerializeField] private enum BattleState { Start, Selection, Battle, Won, Lost, Run }
+
+    [Header("Battle State")]
+    [SerializeField] private BattleState state;
+
     [Header("Spawn Points")]
     [SerializeField] private Transform[] partySpawnPoints;
     [SerializeField] private Transform[] enemySpawnPoints;
@@ -20,6 +25,8 @@ public class BattleSystem : MonoBehaviour
     [SerializeField] private GameObject battleMenu;
     [SerializeField] private GameObject enemySelectionMenu;
     [SerializeField] private TextMeshProUGUI actionText;
+    [SerializeField] private GameObject bottomTextPopup;
+    [SerializeField] private TextMeshProUGUI bottomText;
 
     private PartyManager partyManager;
     private EnemyManager enemyManager;
@@ -36,6 +43,37 @@ public class BattleSystem : MonoBehaviour
         CreatePartyEntities();
         CreateEnemyEntities();
         ShowBattleMenu();
+    }
+
+    private IEnumerator BattleRoutine()
+    {
+        enemySelectionMenu.SetActive(false);
+        state = BattleState.Battle;
+        bottomTextPopup.SetActive(true);
+
+        for (int i = 0; i < allBattlers.Count; i++)
+        {
+            switch (allBattlers[i].BattleAction)
+            {
+                case BattleEntities.Action.Attack:
+                    Debug.Log(allBattlers[i].Name + "We are attacking: " + allBattlers[allBattlers[i].Target].Name);
+                    break;
+                case BattleEntities.Action.Run:
+                    break;
+                default:
+                    Debug.Log("Error - incorrect battle action");
+                    break;
+            }
+        }
+
+        if (state == BattleState.Battle)
+        {
+            bottomTextPopup.SetActive(false);
+            currentPlayer = 0;
+            ShowBattleMenu();
+        }
+
+        yield return null;
     }
 
     private void CreatePartyEntities()
@@ -109,11 +147,45 @@ public class BattleSystem : MonoBehaviour
         }
     }
 
+    public void SelectEnemy(int currentEnemy)
+    {
+        BattleEntities currentPlayerEntity = playerBattlers[currentPlayer];
+        currentPlayerEntity.SetTarget(allBattlers.IndexOf(enemyBattlers[currentEnemy]));
+
+        currentPlayerEntity.BattleAction = BattleEntities.Action.Attack;
+
+        currentPlayer++;
+
+        if (currentPlayer >= playerBattlers.Count)
+        {
+            StartCoroutine(BattleRoutine());
+
+        }
+        else
+        {
+            enemySelectionMenu.SetActive(false);
+            ShowBattleMenu();
+        }
+    }
+
+    private void AttackAction(BattleEntities currentAttacker, BattleEntities currentTarget)
+    {
+        int damage = currentAttacker.Str;
+        currentAttacker.BattleVisuals.PlayAttackAnimation();
+        currentTarget.CurrentHealth -= damage;
+        currentTarget.BattleVisuals.PlayHitAnimation();
+        currentTarget.UpdateUI();
+        bottomText.text = string.Format("{0} attacks {1} for {2} damage", currentAttacker.Name, currentTarget.Name, damage);
+    }
+
 }
 
-[System.Serializable]   
+[System.Serializable]
 public class BattleEntities
 {
+    public enum Action { Attack, Run }
+    public Action BattleAction;
+
     public string Name;
     public int CurrentHealth;
     public int MaxHealth;
@@ -122,6 +194,7 @@ public class BattleEntities
     public int Level;
     public bool IsPlayer;
     public BattleVisuals BattleVisuals;
+    public int Target;
 
     public void SetEntityValues(string name, int currentHealth, int maxHealth, int init, int str, int level, bool isPlayer)
     {
@@ -132,5 +205,15 @@ public class BattleEntities
         Str = str;
         Level = level;
         IsPlayer = isPlayer;
+    }
+
+    public void SetTarget(int target)
+    {
+        Target = target;
+    }
+
+    public void UpdateUI()
+    {
+        BattleVisuals.ChangeHealth(CurrentHealth);
     }
 }
